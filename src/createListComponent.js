@@ -447,7 +447,8 @@ export default function createListComponent({
     // So that List can clear cached styles and force item re-render if necessary.
     _getItemStyle: (index: number) => Object;
     _getItemStyle = (index: number): Object => {
-      const { direction, itemSize, layout } = this.props;
+      const { direction, itemSize, layout, scale } = this.props;
+      const { scrollOffset } = this.state;
 
       const itemStyleCache = this._getItemStyleCache(
         shouldResetStyleCacheOnItemSizeChange && itemSize,
@@ -456,7 +457,7 @@ export default function createListComponent({
       );
 
       let style;
-      if (itemStyleCache.hasOwnProperty(index)) {
+      if (scale === 1 && itemStyleCache.hasOwnProperty(index)) {
         style = itemStyleCache[index];
       } else {
         const offset = getItemOffset(this.props, index, this._instanceProps);
@@ -472,7 +473,7 @@ export default function createListComponent({
           position: 'absolute',
           left: isRtl ? undefined : offsetHorizontal,
           right: isRtl ? offsetHorizontal : undefined,
-          top: !isHorizontal ? offset : 0,
+          top: !isHorizontal ? scrollOffset + (offset - scrollOffset) * scale : 0,
           height: !isHorizontal ? size : '100%',
           width: isHorizontal ? size : '100%',
         };

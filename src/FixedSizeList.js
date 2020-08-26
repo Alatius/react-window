@@ -5,17 +5,17 @@ import createListComponent from './createListComponent';
 import type { Props, ScrollToAlign } from './createListComponent';
 
 const FixedSizeList = createListComponent({
-  getItemOffset: ({ itemSize }: Props<any>, index: number): number =>
-    index * ((itemSize: any): number),
+  getItemOffset: ({ itemSize, scale }: Props<any>, index: number): number =>
+    index * ((itemSize: any): number) / scale,
 
   getItemSize: ({ itemSize }: Props<any>, index: number): number =>
     ((itemSize: any): number),
 
-  getEstimatedTotalSize: ({ itemCount, itemSize }: Props<any>) =>
-    ((itemSize: any): number) * itemCount,
+  getEstimatedTotalSize: ({ itemCount, itemSize, height, scale }: Props<any>) =>
+    (((itemSize: any): number) * itemCount - height) / scale + height,
 
   getOffsetForIndexAndAlignment: (
-    { direction, height, itemCount, itemSize, layout, width }: Props<any>,
+    { direction, height, itemCount, itemSize, layout, width, scale }: Props<any>,
     index: number,
     align: ScrollToAlign,
     scrollOffset: number
@@ -25,15 +25,15 @@ const FixedSizeList = createListComponent({
     const size = (((isHorizontal ? width : height): any): number);
     const lastItemOffset = Math.max(
       0,
-      itemCount * ((itemSize: any): number) - size
+      (itemCount * ((itemSize: any): number) - size) / scale
     );
     const maxOffset = Math.min(
       lastItemOffset,
-      index * ((itemSize: any): number)
+      (index * ((itemSize: any): number)) / scale
     );
     const minOffset = Math.max(
       0,
-      index * ((itemSize: any): number) - size + ((itemSize: any): number)
+      (index * ((itemSize: any): number) - size + ((itemSize: any): number)) / scale
     );
 
     if (align === 'smart') {
@@ -79,25 +79,25 @@ const FixedSizeList = createListComponent({
   },
 
   getStartIndexForOffset: (
-    { itemCount, itemSize }: Props<any>,
+    { itemCount, itemSize, scale }: Props<any>,
     offset: number
   ): number =>
     Math.max(
       0,
-      Math.min(itemCount - 1, Math.floor(offset / ((itemSize: any): number)))
+      Math.min(itemCount - 1, Math.floor((scale * offset) / ((itemSize: any): number)))
     ),
 
   getStopIndexForStartIndex: (
-    { direction, height, itemCount, itemSize, layout, width }: Props<any>,
+    { direction, height, itemCount, itemSize, layout, width, scale }: Props<any>,
     startIndex: number,
     scrollOffset: number
   ): number => {
     // TODO Deprecate direction "horizontal"
     const isHorizontal = direction === 'horizontal' || layout === 'horizontal';
-    const offset = startIndex * ((itemSize: any): number);
+    const offset = startIndex * ((itemSize: any): number) / scale;
     const size = (((isHorizontal ? width : height): any): number);
     const numVisibleItems = Math.ceil(
-      (size + scrollOffset - offset) / ((itemSize: any): number)
+      (size + scale * (scrollOffset - offset)) / ((itemSize: any): number)
     );
     return Math.max(
       0,
