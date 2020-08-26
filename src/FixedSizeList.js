@@ -5,20 +5,21 @@ import createListComponent from './createListComponent';
 import type { Props, ScrollToAlign } from './createListComponent';
 
 const FixedSizeList = createListComponent({
-  getItemOffset: ({ itemSize, scale }: Props<any>, index: number): number =>
+  getItemOffset: ({ itemSize }: Props<any>, index: number, scale: number): number =>
     index * ((itemSize: any): number) / scale,
 
   getItemSize: ({ itemSize }: Props<any>, index: number): number =>
     ((itemSize: any): number),
 
-  getEstimatedTotalSize: ({ itemCount, itemSize, height, scale }: Props<any>) =>
+  getEstimatedTotalSize: ({ itemCount, itemSize, height }: Props<any>, scale: number) =>
     (((itemSize: any): number) * itemCount - height) / scale + height,
 
   getOffsetForIndexAndAlignment: (
-    { direction, height, itemCount, itemSize, layout, width, scale }: Props<any>,
+    { direction, height, itemCount, itemSize, layout, width }: Props<any>,
     index: number,
     align: ScrollToAlign,
-    scrollOffset: number
+    scrollOffset: number,
+    scale: number
   ): number => {
     // TODO Deprecate direction "horizontal"
     const isHorizontal = direction === 'horizontal' || layout === 'horizontal';
@@ -79,8 +80,9 @@ const FixedSizeList = createListComponent({
   },
 
   getStartIndexForOffset: (
-    { itemCount, itemSize, scale }: Props<any>,
-    offset: number
+    { itemCount, itemSize }: Props<any>,
+    offset: number,
+    scale: number
   ): number =>
     Math.max(
       0,
@@ -88,9 +90,10 @@ const FixedSizeList = createListComponent({
     ),
 
   getStopIndexForStartIndex: (
-    { direction, height, itemCount, itemSize, layout, width, scale }: Props<any>,
+    { direction, height, itemCount, itemSize, layout, width }: Props<any>,
     startIndex: number,
-    scrollOffset: number
+    scrollOffset: number,
+    scale: number
   ): number => {
     // TODO Deprecate direction "horizontal"
     const isHorizontal = direction === 'horizontal' || layout === 'horizontal';

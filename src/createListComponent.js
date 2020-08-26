@@ -86,11 +86,13 @@ type State = {|
   scrollDirection: ScrollDirection,
   scrollOffset: number,
   scrollUpdateWasRequested: boolean,
+  scale: number,
 |};
 
 type GetItemOffset = (
   props: Props<any>,
   index: number,
+  scale: number,
   instanceProps: any
 ) => number;
 type GetItemSize = (
@@ -98,23 +100,30 @@ type GetItemSize = (
   index: number,
   instanceProps: any
 ) => number;
-type GetEstimatedTotalSize = (props: Props<any>, instanceProps: any) => number;
+type GetEstimatedTotalSize = (
+  props: Props<any>,
+  scale: number,
+  instanceProps: any
+) => number;
 type GetOffsetForIndexAndAlignment = (
   props: Props<any>,
   index: number,
   align: ScrollToAlign,
   scrollOffset: number,
+  scale: number,
   instanceProps: any
 ) => number;
 type GetStartIndexForOffset = (
   props: Props<any>,
   offset: number,
+  scale: number,
   instanceProps: any
 ) => number;
 type GetStopIndexForStartIndex = (
   props: Props<any>,
   startIndex: number,
   scrollOffset: number,
+  scale: number,
   instanceProps: any
 ) => number;
 type InitInstanceProps = (props: Props<any>, instance: any) => any;
@@ -159,6 +168,7 @@ export default function createListComponent({
   return class List<T> extends PureComponent<Props<T>, State> {
     _instanceProps: any = initInstanceProps(this.props, this);
     _outerRef: ?HTMLDivElement;
+    _innerRef: ?HTMLDivElement;
     _resetIsScrollingTimeoutId: TimeoutID | null = null;
 
     static defaultProps = {
@@ -178,6 +188,7 @@ export default function createListComponent({
           ? this.props.initialScrollOffset
           : 0,
       scrollUpdateWasRequested: false,
+      scale: 1
     };
 
     // Always use explicit constructor for React components.
@@ -214,7 +225,7 @@ export default function createListComponent({
 
     scrollToItem(index: number, align: ScrollToAlign = 'auto'): void {
       const { itemCount } = this.props;
-      const { scrollOffset } = this.state;
+      const { scrollOffset, scale } = this.state;
 
       index = Math.max(0, Math.min(index, itemCount - 1));
 
@@ -224,6 +235,7 @@ export default function createListComponent({
           index,
           align,
           scrollOffset,
+          scale,
           this._instanceProps
         )
       );
@@ -278,6 +290,16 @@ export default function createListComponent({
         }
       }
 
+      if (this._innerRef !== null) {
+        const innerRef = ((this._innerRef: any): HTMLElement);
+        const requestedSize = parseFloat(innerRef.style.height, 10);
+        const actualSize = innerRef.scrollHeight;
+        if (actualSize < requestedSize) {
+          const scale = Math.ceil(requestedSize / actualSize);
+          this.setState({ scale });
+        }
+      }
+
       this._callPropsCallbacks();
     }
 
@@ -293,7 +315,6 @@ export default function createListComponent({
         className,
         direction,
         height,
-        innerRef,
         innerElementType,
         innerTagName,
         itemCount,
@@ -306,7 +327,7 @@ export default function createListComponent({
         useIsScrolling,
         width,
       } = this.props;
-      const { isScrolling } = this.state;
+      const { isScrolling, scale } = this.state;
 
       // TODO Deprecate direction "horizontal"
       const isHorizontal =
@@ -337,6 +358,7 @@ export default function createListComponent({
       // So their actual sizes (if variable) are taken into consideration.
       const estimatedTotalSize = getEstimatedTotalSize(
         this.props,
+        scale,
         this._instanceProps
       );
 
@@ -359,7 +381,7 @@ export default function createListComponent({
         },
         createElement(innerElementType || innerTagName || 'div', {
           children: items,
-          ref: innerRef,
+          ref: this._innerRefSetter,
           style: {
             height: isHorizontal ? '100%' : estimatedTotalSize,
             pointerEvents: isScrolling ? 'none' : undefined,
@@ -447,8 +469,8 @@ export default function createListComponent({
     // So that List can clear cached styles and force item re-render if necessary.
     _getItemStyle: (index: number) => Object;
     _getItemStyle = (index: number): Object => {
-      const { direction, itemSize, layout, scale } = this.props;
-      const { scrollOffset } = this.state;
+      const { direction, itemSize, layout } = this.props;
+      const { scrollOffset, scale } = this.state;
 
       const itemStyleCache = this._getItemStyleCache(
         shouldResetStyleCacheOnItemSizeChange && itemSize,
@@ -460,7 +482,7 @@ export default function createListComponent({
       if (scale === 1 && itemStyleCache.hasOwnProperty(index)) {
         style = itemStyleCache[index];
       } else {
-        const offset = getItemOffset(this.props, index, this._instanceProps);
+        const offset = getItemOffset(this.props, index, scale, this._instanceProps);
         const size = getItemSize(this.props, index, this._instanceProps);
 
         // TODO Deprecate direction "horizontal"
@@ -487,7 +509,7 @@ export default function createListComponent({
 
     _getRangeToRender(): [number, number, number, number] {
       const { itemCount, overscanCount } = this.props;
-      const { isScrolling, scrollDirection, scrollOffset } = this.state;
+      const { isScrolling, scrollDirection, scrollOffset, scale } = this.state;
 
       if (itemCount === 0) {
         return [0, 0, 0, 0];
@@ -496,12 +518,14 @@ export default function createListComponent({
       const startIndex = getStartIndexForOffset(
         this.props,
         scrollOffset,
+        scale,
         this._instanceProps
       );
       const stopIndex = getStopIndexForStartIndex(
         this.props,
         startIndex,
         scrollOffset,
+        scale,
         this._instanceProps
       );
 
@@ -594,20 +618,28 @@ export default function createListComponent({
       }, this._resetIsScrollingDebounced);
     };
 
+    _refSetter = (ref: any, propRef): void => {
+      if (typeof propRef === 'function') {
+        propRef(ref);
+      } else if (
+        propRef != null &&
+        typeof propRef === 'object' &&
+        propRef.hasOwnProperty('current')
+      ) {
+        propRef.current = ref;
+      }
+    };
+
     _outerRefSetter = (ref: any): void => {
       const { outerRef } = this.props;
-
       this._outerRef = ((ref: any): HTMLDivElement);
+      this._refSetter(ref, outerRef);
+    };
 
-      if (typeof outerRef === 'function') {
-        outerRef(ref);
-      } else if (
-        outerRef != null &&
-        typeof outerRef === 'object' &&
-        outerRef.hasOwnProperty('current')
-      ) {
-        outerRef.current = ref;
-      }
+    _innerRefSetter = (ref: any): void => {
+      const { innerRef } = this.props;
+      this._innerRef = ((ref: any): HTMLDivElement);
+      this._refSetter(ref, innerRef);
     };
 
     _resetIsScrollingDebounced = () => {
