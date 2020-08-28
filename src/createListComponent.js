@@ -209,7 +209,7 @@ export default function createListComponent({
     }
 
     scrollTo(scrollOffset: number): void {
-      scrollOffset = Math.max(0, scrollOffset);
+      scrollOffset = Math.max(0, scrollOffset) / this.state.scale;
 
       this.setState(prevState => {
         if (prevState.scrollOffset === scrollOffset) {
@@ -255,6 +255,7 @@ export default function createListComponent({
         }
       }
 
+      this._calculateScale();
       this._callPropsCallbacks();
     }
 
@@ -291,16 +292,7 @@ export default function createListComponent({
         }
       }
 
-      if (this._innerRef !== null && this._estimatedTotalSize !== null) {
-        const innerRef = ((this._innerRef: any): HTMLElement);
-        const requestedSize = this._estimatedTotalSize;
-        const actualSize = innerRef.scrollHeight;
-        if (actualSize < requestedSize) {
-          const scale = Math.ceil(requestedSize / actualSize);
-          this.setState({ scale });
-        }
-      }
-
+      this._calculateScale();
       this._callPropsCallbacks();
     }
 
@@ -390,6 +382,25 @@ export default function createListComponent({
           },
         })
       );
+    }
+
+    _calculateScale() {
+      if (this._innerRef !== null && this._estimatedTotalSize !== null) {
+        const { scrollOffset, scale } = this.state;
+        const innerRef = ((this._innerRef: any): HTMLElement);
+        const requestedSize = this._estimatedTotalSize;
+        const actualSize = innerRef.scrollHeight;
+        if (actualSize < requestedSize) {
+          const newScale = Math.ceil(requestedSize / actualSize);
+          if (newScale !== scale) {
+            this.setState({
+              scale: newScale,
+              scrollOffset: scrollOffset * scale / newScale,
+              scrollUpdateWasRequested: true
+            });
+          }
+        }
+      }
     }
 
     _callOnItemsRendered: (
