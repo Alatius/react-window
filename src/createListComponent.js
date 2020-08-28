@@ -102,7 +102,6 @@ type GetItemSize = (
 ) => number;
 type GetEstimatedTotalSize = (
   props: Props<any>,
-  scale: number,
   instanceProps: any
 ) => number;
 type GetOffsetForIndexAndAlignment = (
@@ -170,7 +169,8 @@ export default function createListComponent({
     _outerRef: ?HTMLDivElement;
     _innerRef: ?HTMLDivElement;
     _resetIsScrollingTimeoutId: TimeoutID | null = null;
-    _estimatedTotalSize: number | null = null;
+    _requestedScaledSize: number | null = null;
+    _foundMaxElementSize: number | null = null;
 
     static defaultProps = {
       direction: 'ltr',
@@ -349,11 +349,13 @@ export default function createListComponent({
 
       // Read this value AFTER items have been created,
       // So their actual sizes (if variable) are taken into consideration.
-      this._estimatedTotalSize = getEstimatedTotalSize(
+      const estimatedTotalSize = getEstimatedTotalSize(
         this.props,
-        scale,
         this._instanceProps
       );
+      const scaledHeight = Math.ceil((estimatedTotalSize - height) / scale + height);
+      const scaledWidth = Math.ceil((estimatedTotalSize - width) / scale + width);
+      this._requestedScaledSize = isHorizontal ? scaledWidth : scaledHeight;
 
       return createElement(
         outerElementType || outerTagName || 'div',
@@ -376,22 +378,27 @@ export default function createListComponent({
           children: items,
           ref: this._innerRefSetter,
           style: {
-            height: isHorizontal ? '100%' : this._estimatedTotalSize,
+            height: isHorizontal ? '100%' : scaledHeight,
             pointerEvents: isScrolling ? 'none' : undefined,
-            width: isHorizontal ? this._estimatedTotalSize : '100%',
+            width: isHorizontal ? scaledWidth : '100%',
           },
         })
       );
     }
 
     _calculateScale() {
-      if (this._innerRef !== null && this._estimatedTotalSize !== null) {
+      if (this._innerRef !== null && this._requestedScaledSize !== null) {
         const { scrollOffset, scale } = this.state;
+        const { height } = this.props;
         const innerRef = ((this._innerRef: any): HTMLElement);
-        const requestedSize = this._estimatedTotalSize;
-        const actualSize = innerRef.scrollHeight;
-        if (actualSize < requestedSize) {
-          const newScale = Math.ceil(requestedSize / actualSize);
+        const actualScaledSize = innerRef.scrollHeight;
+        const requestedScaledSize = this._requestedScaledSize;
+        const currentTotalSize = getEstimatedTotalSize(this.props, this._instanceProps);
+        if (actualScaledSize < requestedScaledSize) {
+          this._foundMaxElementSize = actualScaledSize;
+        }
+        if (this._foundMaxElementSize !== null) {
+          const newScale = Math.max(1, Math.ceil((currentTotalSize - height) / (this._foundMaxElementSize - height)));
           if (newScale !== scale) {
             this.setState({
               scale: newScale,
@@ -503,7 +510,7 @@ export default function createListComponent({
 
         const isRtl = direction === 'rtl';
         const offsetHorizontal = isHorizontal ? offset : 0;
-        itemStyleCache[index] = style = {
+        style = {
           position: 'absolute',
           left: isRtl ? undefined : offsetHorizontal,
           right: isRtl ? offsetHorizontal : undefined,
@@ -511,6 +518,9 @@ export default function createListComponent({
           height: !isHorizontal ? size : '100%',
           width: isHorizontal ? size : '100%',
         };
+        if (scale === 1) {
+          itemStyleCache[index] = style;
+        }
       }
 
       return style;
