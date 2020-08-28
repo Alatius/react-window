@@ -170,6 +170,7 @@ export default function createListComponent({
     _outerRef: ?HTMLDivElement;
     _innerRef: ?HTMLDivElement;
     _resetIsScrollingTimeoutId: TimeoutID | null = null;
+    _estimatedTotalSize: number | null = null;
 
     static defaultProps = {
       direction: 'ltr',
@@ -290,9 +291,9 @@ export default function createListComponent({
         }
       }
 
-      if (this._innerRef !== null) {
+      if (this._innerRef !== null && this._estimatedTotalSize !== null) {
         const innerRef = ((this._innerRef: any): HTMLElement);
-        const requestedSize = parseFloat(innerRef.style.height, 10);
+        const requestedSize = this._estimatedTotalSize;
         const actualSize = innerRef.scrollHeight;
         if (actualSize < requestedSize) {
           const scale = Math.ceil(requestedSize / actualSize);
@@ -356,7 +357,7 @@ export default function createListComponent({
 
       // Read this value AFTER items have been created,
       // So their actual sizes (if variable) are taken into consideration.
-      const estimatedTotalSize = getEstimatedTotalSize(
+      this._estimatedTotalSize = getEstimatedTotalSize(
         this.props,
         scale,
         this._instanceProps
@@ -383,9 +384,9 @@ export default function createListComponent({
           children: items,
           ref: this._innerRefSetter,
           style: {
-            height: isHorizontal ? '100%' : estimatedTotalSize,
+            height: isHorizontal ? '100%' : this._estimatedTotalSize,
             pointerEvents: isScrolling ? 'none' : undefined,
-            width: isHorizontal ? estimatedTotalSize : '100%',
+            width: isHorizontal ? this._estimatedTotalSize : '100%',
           },
         })
       );
