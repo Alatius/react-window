@@ -12,7 +12,7 @@ const FixedSizeList = createListComponent({
     ((itemSize: any): number),
 
   getEstimatedTotalSize: ({ itemCount, itemSize, height }: Props<any>, scale: number) =>
-    (((itemSize: any): number) * itemCount - height) / scale + height,
+    Math.ceil((((itemSize: any): number) * itemCount - height) / scale + height),
 
   getOffsetForIndexAndAlignment: (
     { direction, height, itemCount, itemSize, layout, width }: Props<any>,
