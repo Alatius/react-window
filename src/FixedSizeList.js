@@ -14,27 +14,26 @@ const FixedSizeList = createListComponent({
   getEstimatedTotalSize: ({ itemCount, itemSize, height }: Props<any>) =>
     ((itemSize: any): number) * itemCount,
 
-  getOffsetForIndexAndAlignment: (
+  getUnscaledOffsetForIndexAndAlignment: (
     { direction, height, itemCount, itemSize, layout, width }: Props<any>,
     index: number,
     align: ScrollToAlign,
-    scrollOffset: number,
-    scale: number
+    scrollOffset: number
   ): number => {
     // TODO Deprecate direction "horizontal"
     const isHorizontal = direction === 'horizontal' || layout === 'horizontal';
     const size = (((isHorizontal ? width : height): any): number);
     const lastItemOffset = Math.max(
       0,
-      (itemCount * ((itemSize: any): number) - size) / scale
+      itemCount * ((itemSize: any): number) - size
     );
     const maxOffset = Math.min(
       lastItemOffset,
-      (index * ((itemSize: any): number)) / scale
+      index * ((itemSize: any): number)
     );
     const minOffset = Math.max(
       0,
-      (index * ((itemSize: any): number) - size + ((itemSize: any): number)) / scale
+      index * ((itemSize: any): number) - size + ((itemSize: any): number)
     );
 
     if (align === 'smart') {

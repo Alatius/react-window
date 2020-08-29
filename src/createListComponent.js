@@ -104,12 +104,11 @@ type GetEstimatedTotalSize = (
   props: Props<any>,
   instanceProps: any
 ) => number;
-type GetOffsetForIndexAndAlignment = (
+type GetUnscaledOffsetForIndexAndAlignment = (
   props: Props<any>,
   index: number,
   align: ScrollToAlign,
   scrollOffset: number,
-  scale: number,
   instanceProps: any
 ) => number;
 type GetStartIndexForOffset = (
@@ -147,7 +146,7 @@ export default function createListComponent({
   getItemOffset,
   getEstimatedTotalSize,
   getItemSize,
-  getOffsetForIndexAndAlignment,
+  getUnscaledOffsetForIndexAndAlignment,
   getStartIndexForOffset,
   getStopIndexForStartIndex,
   initInstanceProps,
@@ -157,7 +156,7 @@ export default function createListComponent({
   getItemOffset: GetItemOffset,
   getEstimatedTotalSize: GetEstimatedTotalSize,
   getItemSize: GetItemSize,
-  getOffsetForIndexAndAlignment: GetOffsetForIndexAndAlignment,
+  getUnscaledOffsetForIndexAndAlignment: GetUnscaledOffsetForIndexAndAlignment,
   getStartIndexForOffset: GetStartIndexForOffset,
   getStopIndexForStartIndex: GetStopIndexForStartIndex,
   initInstanceProps: InitInstanceProps,
@@ -231,12 +230,11 @@ export default function createListComponent({
       index = Math.max(0, Math.min(index, itemCount - 1));
 
       this.scrollTo(
-        getOffsetForIndexAndAlignment(
+        getUnscaledOffsetForIndexAndAlignment(
           this.props,
           index,
           align,
           scrollOffset,
-          scale,
           this._instanceProps
         )
       );
